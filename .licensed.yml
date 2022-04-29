@@ -1,0 +1,19 @@
+sources:
+  npm: true
+
+allowed:
+  - mit
+  - apache-2.0
+  - bsd-2-clause
+  - bsd-3-clause
+  - isc
+  - cpol10
+  - wtfpl
+  - zlib
+  - apache-1.0
+  - apache-1.1
+  - antlr
+  - boost
+  - icu
+  - info-zip
+  - jaxen

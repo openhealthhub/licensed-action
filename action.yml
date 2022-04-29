@@ -1,0 +1,40 @@
+name: 'Check Licenses'
+description: 'Check used licences'
+inputs:
+  dependency-manager:  # id of input
+    description: 'Dependency manager used (npm, maven, gradle)'
+    required: true
+    default: 'maven'
+  github-token:
+    description: 'The github token to commit license cache'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v2
+      if: inputs.dependency-manager == 'npm'
+      with:
+        node-version: '14'
+        cache: 'npm'
+    - name: npm install
+      shell: bash
+      run: npm ci
+      if: inputs.dependency-manager == 'npm'
+
+    - uses: jonabc/setup-licensed@v1
+      with:
+        version: 3.x
+    - uses: jonabc/licensed-ci@v1
+      id: licensed
+      with:
+        github_token: ${{ inputs.github-token }}
+    - uses: actions/github-script@0.2.0
+      if: always() && steps.licensed.outputs.pr_number
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          github.issues.createComment({
+            ...context.repo,
+            issue_number: ${{ steps.licensed.outputs.pr_number }}
+            body: 'Updating licenses'
+          })
