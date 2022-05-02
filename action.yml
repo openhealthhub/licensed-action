@@ -28,6 +28,7 @@ runs:
       id: licensed
       with:
         github_token: ${{ inputs.github-token }}
+        config_file: .licensed.yml
     - uses: actions/github-script@0.2.0
       if: always() && steps.licensed.outputs.pr_number
       with:
