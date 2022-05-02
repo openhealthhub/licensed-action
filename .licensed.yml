@@ -17,3 +17,7 @@ allowed:
   - icu
   - info-zip
   - jaxen
+
+ignored:
+  npm:
+    - "@openhealthhub/storybook-components"
