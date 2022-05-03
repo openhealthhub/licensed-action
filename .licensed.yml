@@ -21,3 +21,7 @@ allowed:
 ignored:
   npm:
     - "@openhealthhub/storybook-components"
+
+apps:
+  - root: ./
+  - angular: ./angular
