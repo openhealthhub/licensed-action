@@ -25,6 +25,10 @@ runs:
       run: npm ci
       if: inputs.dependency-manager == 'npm'
 
+
+    - name: copy .licensed.yml
+      shell: bash
+      run: cp ${{ github.action_path }}/.licensed.yml ${GITHUB_WORKSPACE}
     - uses: jonabc/setup-licensed@v1
       with:
         version: 3.x
@@ -32,7 +36,6 @@ runs:
       id: licensed
       with:
         github_token: ${{ inputs.github-token }}
-        config_file: ${{ github.action_path }}/.licensed.yml
     - uses: actions/github-script@0.2.0
       if: always() && steps.licensed.outputs.pr_number
       with:
