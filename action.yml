@@ -25,6 +25,15 @@ runs:
       run: npm ci
       if: inputs.dependency-manager == 'npm'
 
+    - name: Check workspace .licensed.yml existence
+      id: check_files
+      uses: andstor/file-existence-action@v1
+      with:
+        files: ".licensed.yml"
+    - name: Merge licensed.yml files
+      if: steps.check_files.outputs.files_exists == 'true'
+      shell: bash
+      run: yq eval-all -i 'select(fileIndex == 0) *d select(fileIndex == 1)' ${{ github.action_path }}/.licensed.yml .licensed.yml
 
     - name: copy .licensed.yml
       shell: bash
