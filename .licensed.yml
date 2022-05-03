@@ -23,5 +23,5 @@ ignored:
     - "@openhealthhub/storybook-components"
 
 apps:
-  - root: ./
-  - angular: ./angular
+  - source_path: ./
+  - source_path: ./angular
