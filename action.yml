@@ -16,6 +16,10 @@ runs:
       with:
         node-version: '14'
         cache: 'npm'
+    - name: disable post and preinstall scripts
+      shell: bash
+      run: npm config set ignore-scripts true
+      if: inputs.dependency-manager == 'npm'
     - name: npm install
       shell: bash
       run: npm ci
