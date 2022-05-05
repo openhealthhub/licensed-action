@@ -45,13 +45,3 @@ runs:
       id: licensed
       with:
         github_token: ${{ inputs.github-token }}
-    - uses: actions/github-script@0.2.0
-      if: always() && steps.licensed.outputs.pr_number
-      with:
-        github-token: ${{ inputs.github-token }}
-        script: |
-          github.issues.createComment({
-            ...context.repo,
-            issue_number: ${{ steps.licensed.outputs.pr_number }}
-            body: 'Updating licenses'
-          })
