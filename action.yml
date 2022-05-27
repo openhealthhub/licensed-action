@@ -37,7 +37,8 @@ runs:
 
     - name: copy .licensed.yml
       shell: bash
-      run: cp ${{ github.action_path }}/.licensed.yml .licensed.yml
+      run: cp ${{ github.action_path }}/.licensed.yml .licensed.yml && cat .licensed.yml
+
     - uses: jonabc/setup-licensed@v1
       with:
         version: 3.x
