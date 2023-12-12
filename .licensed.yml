@@ -22,3 +22,4 @@ allowed:
 ignored:
   npm:
     - "@openhealthhub/storybook-components"
+    - "@openhealthhub/common-ng-services"
