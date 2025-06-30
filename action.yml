@@ -14,7 +14,7 @@ runs:
     - uses: actions/setup-node@v4
       if: inputs.dependency-manager == 'npm'
       with:
-        node-version: '14'
+        node-version: '22'
         cache: 'npm'
     - name: disable post and preinstall scripts
       shell: bash
