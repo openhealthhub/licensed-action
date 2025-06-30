@@ -41,7 +41,7 @@ runs:
 
     - uses: github/setup-licensed@v1
       with:
-        version: 3.x
+        version: 5
     - uses: github/licensed-ci@v1
       id: licensed
       with:
