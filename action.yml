@@ -50,7 +50,7 @@ runs:
         ruby-version: ruby
         working-directory: ${{ inputs.working-directory }}
 
-    - uses: licensee/setup-licensed@v1
+    - uses: licensee/setup-licensed@v1.3.2
       with:
         version: 4.x
     - uses: github/licensed-ci@v1
