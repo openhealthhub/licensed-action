@@ -18,6 +18,9 @@ allowed:
   - icu
   - info-zip
   - jaxen
+  - cc-by-4.0
+  - cc0-1.0
+  - unlicense
 
 ignored:
   npm:
