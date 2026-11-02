@@ -53,7 +53,7 @@ runs:
       shell: bash
       env:
         BRANCH: ${{ github.head_ref || github.ref_name }}
-      run: bash "$GITHUB_ACTION_PATH/checkout-branch.sh"
+      run: bash "$GITHUB_ACTION_PATH/../scripts/checkout-branch.sh"
 
     - name: Generate SBOM
       if: steps.changes.outputs.run == 'true'
@@ -70,7 +70,7 @@ runs:
       env:
         BOM: ${{ steps.sbom.outputs.bom }}
         BUILD_TOOL: ${{ inputs.build-tool }}
-      run: node "$GITHUB_ACTION_PATH/licenses.ts" cache "$BOM" /tmp/.licensed.json "$BUILD_TOOL" .licenses
+      run: node "$GITHUB_ACTION_PATH/../scripts/licenses.ts" cache "$BOM" /tmp/.licensed.json "$BUILD_TOOL" .licenses
     - name: Commit license records
       if: steps.changes.outputs.run == 'true'
       shell: bash
@@ -78,7 +78,7 @@ runs:
       env:
         BRANCH: ${{ github.head_ref || github.ref_name }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
-      run: bash "$GITHUB_ACTION_PATH/commit-records.sh"
+      run: bash "$GITHUB_ACTION_PATH/../scripts/commit-records.sh"
     - name: Check licenses
       if: steps.changes.outputs.run == 'true'
       shell: bash
@@ -86,4 +86,4 @@ runs:
       env:
         BOM: ${{ steps.sbom.outputs.bom }}
         BUILD_TOOL: ${{ inputs.build-tool }}
-      run: node "$GITHUB_ACTION_PATH/licenses.ts" status "$BOM" /tmp/.licensed.json "$BUILD_TOOL"
+      run: node "$GITHUB_ACTION_PATH/../scripts/licenses.ts" status "$BOM" /tmp/.licensed.json "$BUILD_TOOL"

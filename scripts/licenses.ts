@@ -1,8 +1,8 @@
 // Usage:
 //   node licenses.ts cache  <bom.json> <config.json> <type> <cache-dir>
 //   node licenses.ts status <bom.json> <config.json> <type>
-import {appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
-import {join} from 'node:path';
+import {appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 type Licensing = { license?: { id?: string; name?: string }; expression?: string };
@@ -13,10 +13,13 @@ type Component = {
   version?: string;
   licenses?: Licensing[];
   externalReferences?: { type: string; url: string }[];
+  properties?: { name: string; value: string }[];
   components?: Component[];
 };
 
 export type Bom = { components?: Component[] };
+
+type LegacyLicense = string | { type?: string };
 
 export type Config = {
   allowed?: string[];
@@ -79,17 +82,23 @@ const declaredNames = (component: Component) =>
 
 const unique = <T>(values: T[]) => [...new Set(values)];
 
+// npm packages are named like @scope/name or name, Maven and Gradle artifacts like group:artifact
+const nameOf = (component: Component, type: string) => {
+  if (type === 'npm') {
+    return component.group ? `${component.group}/${component.name}` : component.name;
+  }
+
+  return `${component.group}:${component.name}`;
+};
+
 export const toRecords = (bom: Bom, config: Config, type: string): DependencyRecord[] => {
-  const components = flatten(bom.components).filter(component => component.group);
+  const components = flatten(bom.components).filter(component => type === 'npm' || component.group);
   if (components.length === 0) {
     throw new Error('The SBOM lists no dependencies, so dependency resolution probably failed');
   }
 
   const ignored = config.ignored?.[type] ?? [];
-  const byName = Map.groupBy(
-    components,
-    component => `${component.group}:${component.name}`
-  );
+  const byName = Map.groupBy(components, component => nameOf(component, type));
 
   return [...byName]
     .filter(([name]) => !matches(ignored, name))
@@ -124,9 +133,9 @@ export const writeRecords = (records: DependencyRecord[], cacheDir: string, type
   const typeDir = join(cacheDir, type);
   rmSync(typeDir, {recursive: true, force: true});
   for (const record of records) {
-    const [group, artifact] = record.name.split(':');
-    mkdirSync(join(typeDir, group), {recursive: true});
-    writeFileSync(join(typeDir, group, `${artifact}.dep.yml`), toYaml(record));
+    const path = join(typeDir, `${record.name.replace(':', '/')}.dep.yml`);
+    mkdirSync(dirname(path), {recursive: true});
+    writeFileSync(path, toYaml(record));
   }
 };
 
@@ -194,15 +203,41 @@ export const findProblems = (records: DependencyRecord[], config: Config, type: 
     .map(describe);
 };
 
+// Old npm packages declare {"type": "MIT"} as license or a licenses array, which CycloneDX npm does not read
+export const addLegacyNpmLicenses = (bom: Bom, projectDir: string) => {
+  for (const component of flatten(bom.components)) {
+    const path = component.properties?.find(property => property.name === 'cdx:npm:package:path')?.value;
+    const packageJson = path && join(projectDir, path, 'package.json');
+    if ((component.licenses ?? []).length > 0 || !packageJson || !existsSync(packageJson)) {
+      continue;
+    }
+
+    const {license, licenses} = readJson<{license?: LegacyLicense; licenses?: LegacyLicense[]}>(packageJson);
+    const types = [license, ...(licenses ?? [])]
+      .map(legacy => typeof legacy === 'object' ? legacy?.type : undefined)
+      .filter((type): type is string => Boolean(type));
+    if (types.length > 0) {
+      component.licenses = types.map(id => ({license: {id}}));
+    }
+  }
+
+  return bom;
+};
+
+const readBom = (bomPath: string, type: string) => {
+  const bom = readJson<Bom>(bomPath);
+  return type === 'npm' ? addLegacyNpmLicenses(bom, process.cwd()) : bom;
+};
+
 const cache = (bomPath: string, configPath: string, type: string, cacheDir: string) => {
-  const records = toRecords(readJson(bomPath), readJson(configPath), type);
+  const records = toRecords(readBom(bomPath, type), readJson(configPath), type);
   writeRecords(records, cacheDir, type);
   console.log(`Cached ${records.length} ${type} dependencies in ${join(cacheDir, type)}`);
 };
 
 const status = (bomPath: string, configPath: string, type: string) => {
   const config = readJson<Config>(configPath);
-  const problems = findProblems(toRecords(readJson(bomPath), config, type), config, type);
+  const problems = findProblems(toRecords(readBom(bomPath, type), config, type), config, type);
   if (problems.length === 0) {
     console.log(`All ${type} dependency licenses are allowed`);
     return;

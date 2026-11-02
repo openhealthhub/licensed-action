@@ -1,5 +1,5 @@
 name: 'Check npm licenses'
-description: 'Checks the licenses of npm dependencies with licensed and commits a record per dependency'
+description: 'Checks the licenses of runtime npm dependencies from a CycloneDX SBOM and commits a record per dependency'
 inputs:
   github-token:
     description: 'The github token to commit license records'
@@ -29,6 +29,21 @@ runs:
         WORKING_DIRECTORY: ${{ inputs.working-directory }}
       run: node "$GITHUB_ACTION_PATH/../scripts/changes.ts"
 
+    - name: Configure license check
+      if: steps.changes.outputs.run == 'true'
+      shell: bash
+      env:
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
+      run: |
+        bash "$GITHUB_ACTION_PATH/../scripts/merge-config.sh" /tmp/.licensed.yml
+        yq -o=json /tmp/.licensed.yml > /tmp/.licensed.json
+    - name: Check out the branch to commit license records to
+      if: steps.changes.outputs.run == 'true'
+      shell: bash
+      env:
+        BRANCH: ${{ github.head_ref || github.ref_name }}
+      run: bash "$GITHUB_ACTION_PATH/../scripts/checkout-branch.sh"
+
     - name: Install dependencies without running their scripts
       if: steps.changes.outputs.run == 'true'
       shell: bash
@@ -36,34 +51,35 @@ runs:
       run: |
         npm config set ignore-scripts true
         npm ci
-    - name: Configure licensed
+    - name: Generate SBOM
       if: steps.changes.outputs.run == 'true'
+      id: sbom
       shell: bash
-      env:
-        WORKING_DIRECTORY: ${{ inputs.working-directory }}
+      working-directory: ${{ inputs.working-directory }}
       run: |
-        bash "$GITHUB_ACTION_PATH/../scripts/merge-config.sh" /tmp/.licensed.yml
-        yq -i '.source_path = strenv(WORKING_DIRECTORY) | .cache_path = strenv(WORKING_DIRECTORY) + "/.licenses"' /tmp/.licensed.yml
-        UNINSTALLED=$(cd "$WORKING_DIRECTORY" && node "$GITHUB_ACTION_PATH/../scripts/uninstalled-optionals.ts")
-        echo "Optional dependencies that are not installed: $UNINSTALLED"
-        UNINSTALLED=$UNINSTALLED yq -i '.ignored.npm += env(UNINSTALLED)' /tmp/.licensed.yml
-
-    - uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
-      if: steps.changes.outputs.run == 'true'
-      with:
-        ruby-version: ruby
-        working-directory: ${{ inputs.working-directory }}
-    - uses: licensee/setup-licensed@0d52e575b3258417672be0dff2f115d7db8771d8 # v1.3.2
-      if: steps.changes.outputs.run == 'true'
-      with:
-        version: 5.x
-    # licensed-ci adds this remote and fails when an earlier check in the same job already did
-    - name: Remove the remote of an earlier licensed-ci run
+        bom="$RUNNER_TEMP/npm-bom.json"
+        npx --yes @cyclonedx/cyclonedx-npm@6.0.1 --omit dev --ignore-npm-errors \
+          --output-format JSON --output-file "$bom" >&2
+        echo "bom=$bom" >> "$GITHUB_OUTPUT"
+    - name: Cache license records
       if: steps.changes.outputs.run == 'true'
       shell: bash
-      run: git remote remove licensed-ci-origin 2>/dev/null || true
-    - uses: github/licensed-ci@6e2e80cc71cd0c4b4bf18a9be203443e7e81273a # v1.11.1
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        BOM: ${{ steps.sbom.outputs.bom }}
+      run: node "$GITHUB_ACTION_PATH/../scripts/licenses.ts" cache "$BOM" /tmp/.licensed.json npm .licenses
+    - name: Commit license records
       if: steps.changes.outputs.run == 'true'
-      with:
-        github_token: ${{ inputs.github-token }}
-        config_file: /tmp/.licensed.yml
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        BRANCH: ${{ github.head_ref || github.ref_name }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: bash "$GITHUB_ACTION_PATH/../scripts/commit-records.sh"
+    - name: Check licenses
+      if: steps.changes.outputs.run == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        BOM: ${{ steps.sbom.outputs.bom }}
+      run: node "$GITHUB_ACTION_PATH/../scripts/licenses.ts" status "$BOM" /tmp/.licensed.json npm
