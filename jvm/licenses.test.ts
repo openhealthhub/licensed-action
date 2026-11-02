@@ -69,6 +69,11 @@ describe('records', () => {
     assert.equal(relicensed?.license, '(lgpl-2.1-only) AND (apache-2.0)');
   });
 
+  it('fails on an SBOM without dependencies, as resolving them failed', () => {
+    assert.throws(() => toRecords({components: []}, config, 'maven'), /lists no dependencies/);
+    assert.throws(() => toRecords({}, config, 'maven'), /lists no dependencies/);
+  });
+
   it('reports dependencies that are not allowed or reviewed', () => {
     assert.deepEqual(findProblems(toRecords(bom, config, 'maven'), config, 'maven'), [
       "org.example:copyleft (1.0): license '(epl-2.0 or gpl-2.0-with-classpath-exception)' is not allowed",

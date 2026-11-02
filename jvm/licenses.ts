@@ -80,9 +80,14 @@ const declaredNames = (component: Component) =>
 const unique = <T>(values: T[]) => [...new Set(values)];
 
 export const toRecords = (bom: Bom, config: Config, type: string): DependencyRecord[] => {
+  const components = flatten(bom.components).filter(component => component.group);
+  if (components.length === 0) {
+    throw new Error('The SBOM lists no dependencies, so dependency resolution probably failed');
+  }
+
   const ignored = config.ignored?.[type] ?? [];
   const byName = Map.groupBy(
-    flatten(bom.components).filter(component => component.group),
+    components,
     component => `${component.group}:${component.name}`
   );
 
@@ -213,12 +218,17 @@ const status = (bomPath: string, configPath: string, type: string) => {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [command, ...args] = process.argv.slice(2);
-  if (command === 'cache' && args.length === 4) {
-    cache(args[0], args[1], args[2], args[3]);
-  } else if (command === 'status' && args.length === 3) {
-    status(args[0], args[1], args[2]);
-  } else {
-    console.error('Usage: licenses.ts cache <bom.json> <config.json> <type> <cache-dir> | status <bom.json> <config.json> <type>');
+  try {
+    if (command === 'cache' && args.length === 4) {
+      cache(args[0], args[1], args[2], args[3]);
+    } else if (command === 'status' && args.length === 3) {
+      status(args[0], args[1], args[2]);
+    } else {
+      console.error('Usage: licenses.ts cache <bom.json> <config.json> <type> <cache-dir> | status <bom.json> <config.json> <type>');
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
     process.exitCode = 1;
   }
 }
