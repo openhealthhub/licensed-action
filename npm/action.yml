@@ -44,6 +44,9 @@ runs:
       run: |
         bash "$GITHUB_ACTION_PATH/../scripts/merge-config.sh" /tmp/.licensed.yml
         yq -i '.source_path = strenv(WORKING_DIRECTORY) | .cache_path = strenv(WORKING_DIRECTORY) + "/.licenses"' /tmp/.licensed.yml
+        UNINSTALLED=$(cd "$WORKING_DIRECTORY" && node "$GITHUB_ACTION_PATH/../scripts/uninstalled-optionals.ts")
+        echo "Optional dependencies that are not installed: $UNINSTALLED"
+        UNINSTALLED=$UNINSTALLED yq -i '.ignored.npm += env(UNINSTALLED)' /tmp/.licensed.yml
 
     - uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
       if: steps.changes.outputs.run == 'true'
@@ -54,6 +57,11 @@ runs:
       if: steps.changes.outputs.run == 'true'
       with:
         version: 5.x
+    # licensed-ci adds this remote and fails when an earlier check in the same job already did
+    - name: Remove the remote of an earlier licensed-ci run
+      if: steps.changes.outputs.run == 'true'
+      shell: bash
+      run: git remote remove licensed-ci-origin 2>/dev/null || true
     - uses: github/licensed-ci@6e2e80cc71cd0c4b4bf18a9be203443e7e81273a # v1.11.1
       if: steps.changes.outputs.run == 'true'
       with:
