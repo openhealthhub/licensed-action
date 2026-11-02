@@ -28,6 +28,14 @@ jobs:
         run: npm test
       - name: Shellcheck
         run: shellcheck jvm/*.sh scripts/*.sh
+      - name: Config merge keeps the shared entries
+        run: |
+          mkdir -p "$RUNNER_TEMP/repository"
+          printf 'reviewed:\n  npm:\n    - local-package\nignored:\n  npm:\n    - local-ignored\n' > "$RUNNER_TEMP/repository/.licensed.yml"
+          WORKING_DIRECTORY="$RUNNER_TEMP/repository" bash scripts/merge-config.sh "$RUNNER_TEMP/merged.yml"
+          yq -e '.reviewed.npm | contains(["openpgp", "local-package"])' "$RUNNER_TEMP/merged.yml"
+          yq -e '.ignored.npm | contains(["@openhealthhub/storybook-components", "local-ignored"])' "$RUNNER_TEMP/merged.yml"
+          yq -e '.allowed | contains(["mit"])' "$RUNNER_TEMP/merged.yml"
 
   # The integration jobs commit license records to the pull request branch, so they run one after another
   integration-maven:
@@ -42,6 +50,7 @@ jobs:
         with:
           build-tool: 'maven'
           working-directory: test/maven
+          paths: '**'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
   integration-gradle:
@@ -56,6 +65,7 @@ jobs:
         with:
           build-tool: 'gradle'
           working-directory: test/gradle
+          paths: '**'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
   integration-npm:
@@ -69,4 +79,5 @@ jobs:
       - uses: ./npm
         with:
           working-directory: test/npm
+          paths: '**'
           github-token: ${{ secrets.GITHUB_TOKEN }}

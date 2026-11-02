@@ -9,5 +9,5 @@
     "verbatimModuleSyntax": true,
     "types": ["node"]
   },
-  "include": ["jvm/**/*.ts"]
+  "include": ["jvm/**/*.ts", "scripts/**/*.ts"]
 }

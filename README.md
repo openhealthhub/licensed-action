@@ -13,14 +13,17 @@ repository.
 Both take `github-token` and an optional `working-directory`. The job needs `permissions: contents: write` to commit
 the records to the pull request branch.
 
+Run the workflow on every pull request, without a `paths` filter, so it can be a required check. On a pull request
+that changes none of the dependency files the action returns right away; the defaults are the lockfiles or build
+files, `.licensed.yml` and `.github/workflows/**`. The optional `paths` input (glob patterns, one per line) replaces
+them. Without records in `.licenses/` yet, and outside pull requests, the check always runs.
+
 ## npm
 
 ```yaml
 name: Update Licenses
 on:
   pull_request:
-    paths:
-      - package-lock.json
   workflow_dispatch:
 
 jobs:
@@ -30,7 +33,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: openhealthhub/licensed-action/npm@v1.0
+      - uses: openhealthhub/licensed-action/npm@v1.0.2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -41,8 +44,6 @@ jobs:
 name: Update Licenses
 on:
   pull_request:
-    paths:
-      - pom.xml
   workflow_dispatch:
 
 jobs:
@@ -54,15 +55,14 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: openhealthhub/licensed-action/jvm@v1.0
+      - uses: openhealthhub/licensed-action/jvm@v1.0.2
         with:
           build-tool: 'maven'
           java-version: '25'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-For Gradle use `build-tool: 'gradle'` and trigger on `build.gradle.kts` and `gradle/libs.versions.toml`.
-Dependencies are matched as `group:artifact`, globs are allowed:
+For Gradle use `build-tool: 'gradle'`. Dependencies are matched as `group:artifact`, globs are allowed:
 
 ```yaml
 reviewed:

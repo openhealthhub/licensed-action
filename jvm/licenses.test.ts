@@ -21,7 +21,7 @@ const bom: Bom = {
     component('org.example', 'renamed', '1.0', [{ license: { name: 'Apache  Software License 2.0 ' } }]),
     component('org.example', 'copyleft', '1.0', [{ expression: 'EPL-2.0 OR GPL-2.0-with-classpath-exception' }]),
     component('org.example', 'unlicensed', '1.0', []),
-    component('org.example', 'custom', '1.0', [{ license: { name: 'Bouncy Castle Licence' } }]),
+    component('org.example', 'custom', '1.0', [{ license: { name: 'Example Vendor Licence' } }]),
     component('org.example', 'relicensed', '1.0', [{ license: { id: 'LGPL-2.1-only' } }]),
     component('org.example', 'relicensed', '2.0', [{ license: { id: 'Apache-2.0' } }]),
     component('ch.qos.logback', 'logback-core', '1.5.0', [{ license: { id: 'EPL-2.0' } }]),
@@ -77,7 +77,7 @@ describe('records', () => {
   it('reports dependencies that are not allowed or reviewed', () => {
     assert.deepEqual(findProblems(toRecords(bom, config, 'maven'), config, 'maven'), [
       "org.example:copyleft (1.0): license '(epl-2.0 or gpl-2.0-with-classpath-exception)' is not allowed",
-      'org.example:custom (1.0): unrecognised license ["Bouncy Castle Licence"], ' +
+      'org.example:custom (1.0): unrecognised license ["Example Vendor Licence"], ' +
         'map it in license-names.json or review the dependency',
       "org.example:relicensed (1.0, 2.0): license '(lgpl-2.1-only) AND (apache-2.0)' is not allowed",
       'org.example:unlicensed (1.0): no license declared'
@@ -89,7 +89,7 @@ describe('records', () => {
 
     assert.equal(
       readFileSync(join(dir, 'maven', 'org.example', 'custom.dep.yml'), 'utf8'),
-      '---\nname: "org.example:custom"\nversion: "1.0"\ntype: "maven"\nlicense: "other"\ndeclared:\n- "Bouncy Castle Licence"\n'
+      '---\nname: "org.example:custom"\nversion: "1.0"\ntype: "maven"\nlicense: "other"\ndeclared:\n- "Example Vendor Licence"\n'
     );
   });
 

@@ -25,6 +25,15 @@ allowed:
   - cc0-1.0
   - unlicense
 
+reviewed:
+  npm:
+    # Font Awesome Pro, commercial licence paid by Open HealthHub
+    - "@fortawesome/pro-*"
+    - "@fortawesome/sharp-*"
+    - "@fortawesome/duotone-*"
+    # LGPL-3.0, OP-22954 brings its use in line with the LGPL
+    - openpgp
+
 ignored:
   npm:
     - "@openhealthhub/storybook-components"

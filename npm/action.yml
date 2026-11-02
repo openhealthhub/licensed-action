@@ -8,6 +8,10 @@ inputs:
     description: 'The directory containing package.json'
     required: false
     default: '.'
+  paths:
+    description: 'Glob patterns, one per line, of the files whose change requires a license check on a pull request; defaults to the lockfiles'
+    required: false
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -16,14 +20,25 @@ runs:
         node-version: '22'
         cache: 'npm'
         cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+    - name: Check for dependency changes
+      id: changes
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        LICENSE_SOURCE: npm
+        PATHS: ${{ inputs.paths }}
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
+      run: node "$GITHUB_ACTION_PATH/../scripts/changes.ts"
+
     - name: Install dependencies without running their scripts
+      if: steps.changes.outputs.run == 'true'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
         npm config set ignore-scripts true
         npm ci
-
     - name: Configure licensed
+      if: steps.changes.outputs.run == 'true'
       shell: bash
       env:
         WORKING_DIRECTORY: ${{ inputs.working-directory }}
@@ -32,13 +47,16 @@ runs:
         yq -i '.source_path = strenv(WORKING_DIRECTORY) | .cache_path = strenv(WORKING_DIRECTORY) + "/.licenses"' /tmp/.licensed.yml
 
     - uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
+      if: steps.changes.outputs.run == 'true'
       with:
         ruby-version: ruby
         working-directory: ${{ inputs.working-directory }}
     - uses: licensee/setup-licensed@0d52e575b3258417672be0dff2f115d7db8771d8 # v1.3.2
+      if: steps.changes.outputs.run == 'true'
       with:
         version: 5.x
     - uses: github/licensed-ci@6e2e80cc71cd0c4b4bf18a9be203443e7e81273a # v1.11.1
+      if: steps.changes.outputs.run == 'true'
       with:
         github_token: ${{ inputs.github-token }}
         config_file: /tmp/.licensed.yml
