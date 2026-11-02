@@ -12,6 +12,10 @@ inputs:
     description: 'Glob patterns, one per line, of the files whose change requires a license check on a pull request; defaults to the lockfiles'
     required: false
     default: ''
+  package:
+    description: 'The package.json of the published package, relative to working-directory, when the root package.json is only the development setup, as in a library workspace'
+    required: false
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -67,6 +71,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         BOM: ${{ steps.sbom.outputs.bom }}
+        LICENSE_PACKAGE: ${{ inputs.package }}
       run: node "$GITHUB_ACTION_PATH/../scripts/licenses.ts" cache "$BOM" /tmp/.licensed.json npm .licenses
     - name: Commit license records
       if: steps.changes.outputs.run == 'true'
@@ -82,4 +87,5 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         BOM: ${{ steps.sbom.outputs.bom }}
+        LICENSE_PACKAGE: ${{ inputs.package }}
       run: node "$GITHUB_ACTION_PATH/../scripts/licenses.ts" status "$BOM" /tmp/.licensed.json npm

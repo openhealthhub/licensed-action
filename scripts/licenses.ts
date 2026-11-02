@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 type Licensing = { license?: { id?: string; name?: string }; expression?: string };
 
 type Component = {
+  'bom-ref'?: string;
   group?: string;
   name: string;
   version?: string;
@@ -17,7 +18,11 @@ type Component = {
   components?: Component[];
 };
 
-export type Bom = { components?: Component[] };
+export type Bom = {
+  metadata?: { component?: { 'bom-ref'?: string } };
+  components?: Component[];
+  dependencies?: { ref: string; dependsOn?: string[] }[];
+};
 
 type LegacyLicense = string | { type?: string };
 
@@ -91,12 +96,36 @@ const nameOf = (component: Component, type: string) => {
   return `${component.group}:${component.name}`;
 };
 
-export const toRecords = (bom: Bom, config: Config, type: string): DependencyRecord[] => {
-  const components = flatten(bom.components).filter(component => type === 'npm' || component.group);
-  if (components.length === 0) {
+// Keeps what the published package depends on, directly or transitively, when the repository root is only its
+// development setup, as in an Angular library workspace
+const reachableFrom = (bom: Bom, components: Component[], published: string[], type: string) => {
+  const graph = new Map((bom.dependencies ?? []).map(dependency => [dependency.ref, dependency.dependsOn ?? []]));
+  const byRef = new Map(components.map(component => [component['bom-ref'], component]));
+  const root = graph.get(bom.metadata?.component?.['bom-ref'] ?? '') ?? [];
+  const queue = root.filter(ref => {
+    const component = byRef.get(ref);
+    return component !== undefined && published.includes(nameOf(component, type));
+  });
+  const reached = new Set(queue);
+  while (queue.length > 0) {
+    for (const ref of graph.get(queue.shift() ?? '') ?? []) {
+      if (!reached.has(ref)) {
+        reached.add(ref);
+        queue.push(ref);
+      }
+    }
+  }
+
+  return components.filter(component => reached.has(component['bom-ref'] ?? ''));
+};
+
+export const toRecords = (bom: Bom, config: Config, type: string, published?: string[]): DependencyRecord[] => {
+  const all = flatten(bom.components).filter(component => type === 'npm' || component.group);
+  if (all.length === 0) {
     throw new Error('The SBOM lists no dependencies, so dependency resolution probably failed');
   }
 
+  const components = published ? reachableFrom(bom, all, published, type) : all;
   const ignored = config.ignored?.[type] ?? [];
   const byName = Map.groupBy(components, component => nameOf(component, type));
 
@@ -229,15 +258,26 @@ const readBom = (bomPath: string, type: string) => {
   return type === 'npm' ? addLegacyNpmLicenses(bom, process.cwd()) : bom;
 };
 
+// LICENSE_PACKAGE points at the package.json of the published package; npm installs its optional dependencies too
+const publishedDependencies = () => {
+  const path = process.env.LICENSE_PACKAGE;
+  if (!path) {
+    return undefined;
+  }
+
+  const {dependencies, optionalDependencies} = readJson<Record<string, Record<string, string> | undefined>>(path);
+  return Object.keys({...dependencies, ...optionalDependencies});
+};
+
 const cache = (bomPath: string, configPath: string, type: string, cacheDir: string) => {
-  const records = toRecords(readBom(bomPath, type), readJson(configPath), type);
+  const records = toRecords(readBom(bomPath, type), readJson(configPath), type, publishedDependencies());
   writeRecords(records, cacheDir, type);
   console.log(`Cached ${records.length} ${type} dependencies in ${join(cacheDir, type)}`);
 };
 
 const status = (bomPath: string, configPath: string, type: string) => {
   const config = readJson<Config>(configPath);
-  const problems = findProblems(toRecords(readBom(bomPath, type), config, type), config, type);
+  const problems = findProblems(toRecords(readBom(bomPath, type), config, type, publishedDependencies()), config, type);
   if (problems.length === 0) {
     console.log(`All ${type} dependency licenses are allowed`);
     return;

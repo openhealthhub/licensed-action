@@ -16,6 +16,11 @@ Both generate a CycloneDX SBOM of the runtime dependencies and check the license
 Both take `github-token` and an optional `working-directory`. The job needs `permissions: contents: write` to commit
 the records to the pull request branch.
 
+In an npm library workspace, where the root package.json is only the development setup, set `package` to the
+package.json of the published package, for example `projects/components/package.json`. The check then covers only what
+that package's `dependencies` and `optionalDependencies` pull in; its peer dependencies are checked in the applications
+that install them.
+
 Run the workflow on every pull request, without a `paths` filter, so it can be a required check. On a pull request
 that changes none of the dependency files the action returns right away; the defaults are the lockfiles or build
 files, `.licensed.yml` and `.github/workflows/**`. The optional `paths` input (glob patterns, one per line) replaces

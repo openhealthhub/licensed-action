@@ -132,6 +132,23 @@ describe('records', () => {
     ]);
   });
 
+  it('keeps only what a published package depends on', () => {
+    const component = (name: string) => ({'bom-ref': `root|${name}`, name, version: '1.0.0', licenses: [{license: {id: 'MIT'}}]});
+    const workspaceBom: Bom = {
+      metadata: {component: {'bom-ref': 'root'}},
+      components: [component('tslib'), component('chart.js'), component('color'), component('ng-packagr'), component('@angular/core')],
+      dependencies: [
+        {ref: 'root', dependsOn: ['root|tslib', 'root|chart.js', 'root|ng-packagr', 'root|@angular/core']},
+        {ref: 'root|chart.js', dependsOn: ['root|color']},
+        {ref: 'root|ng-packagr', dependsOn: ['root|tslib']}
+      ]
+    };
+
+    const records = toRecords(workspaceBom, {allowed: ['mit']}, 'npm', ['tslib', 'chart.js', 'not-installed']);
+
+    assert.deepEqual(records.map(record => record.name).sort(), ['chart.js', 'color', 'tslib']);
+  });
+
   it('names npm packages by scope and name and stores them like licensed', () => {
     const npmBom: Bom = {
       components: [
