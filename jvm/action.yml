@@ -29,7 +29,6 @@ runs:
       id: changes
       shell: bash
       env:
-        GH_TOKEN: ${{ inputs.github-token }}
         LICENSE_SOURCE: ${{ inputs.build-tool }}
         PATHS: ${{ inputs.paths }}
         WORKING_DIRECTORY: ${{ inputs.working-directory }}

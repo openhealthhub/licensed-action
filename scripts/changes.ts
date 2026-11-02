@@ -2,7 +2,7 @@
 // Writes run=true|false to $GITHUB_OUTPUT. A pull request that touches no dependency file skips the license check,
 // as long as license records already exist; every other event runs it.
 import {execFileSync} from 'node:child_process';
-import {appendFileSync, existsSync, readFileSync} from 'node:fs';
+import {appendFileSync, existsSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -46,16 +46,22 @@ export const shouldRun = (changedFiles: string[] | undefined, patterns: string[]
   return changedFiles.some(file => regexes.some(regex => regex.test(file)));
 };
 
+// On a pull request GITHUB_SHA is the merge commit; its first parent is the base it was merged onto, so the diff between
+// them is the pull request's change, without needing API permissions
 const pullRequestFiles = () => {
-  if (process.env.GITHUB_EVENT_NAME !== 'pull_request' || !process.env.GITHUB_EVENT_PATH) {
+  const merge = process.env.GITHUB_SHA;
+  if (process.env.GITHUB_EVENT_NAME !== 'pull_request' || !merge) {
     return undefined;
   }
 
-  const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
-  const output = execFileSync('gh', [
-    'api', '--paginate', `repos/${process.env.GITHUB_REPOSITORY}/pulls/${event.pull_request.number}/files`, '--jq', '.[].filename'
-  ], {encoding: 'utf8'});
-  return output.split('\n').filter(file => file.length > 0);
+  try {
+    execFileSync('git', ['fetch', '--no-tags', '--depth=2', 'origin', merge], {stdio: 'ignore'});
+    const output = execFileSync('git', ['diff', '--name-only', `${merge}^1`, merge], {encoding: 'utf8'});
+    return output.split('\n').filter(file => file.length > 0);
+  } catch (error) {
+    console.log(`Could not determine the changed files, running the license check: ${error instanceof Error ? error.message : error}`);
+    return undefined;
+  }
 };
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
