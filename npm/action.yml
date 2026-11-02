@@ -1,0 +1,44 @@
+name: 'Check npm licenses'
+description: 'Checks the licenses of npm dependencies with licensed and commits a record per dependency'
+inputs:
+  github-token:
+    description: 'The github token to commit license records'
+    required: true
+  working-directory:
+    description: 'The directory containing package.json'
+    required: false
+    default: '.'
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+    - name: Install dependencies without running their scripts
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        npm config set ignore-scripts true
+        npm ci
+
+    - name: Configure licensed
+      shell: bash
+      env:
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
+      run: |
+        bash "$GITHUB_ACTION_PATH/../scripts/merge-config.sh" /tmp/.licensed.yml
+        yq -i '.source_path = strenv(WORKING_DIRECTORY) | .cache_path = strenv(WORKING_DIRECTORY) + "/.licenses"' /tmp/.licensed.yml
+
+    - uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
+      with:
+        ruby-version: ruby
+        working-directory: ${{ inputs.working-directory }}
+    - uses: licensee/setup-licensed@0d52e575b3258417672be0dff2f115d7db8771d8 # v1.3.2
+      with:
+        version: 5.x
+    - uses: github/licensed-ci@6e2e80cc71cd0c4b4bf18a9be203443e7e81273a # v1.11.1
+      with:
+        github_token: ${{ inputs.github-token }}
+        config_file: /tmp/.licensed.yml

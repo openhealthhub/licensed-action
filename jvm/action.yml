@@ -1,0 +1,70 @@
+name: 'Check Maven and Gradle licenses'
+description: 'Checks the licenses of runtime dependencies from a CycloneDX SBOM and commits a record per dependency'
+inputs:
+  build-tool:
+    description: 'maven or gradle'
+    required: true
+  github-token:
+    description: 'The github token to commit license records'
+    required: true
+  working-directory:
+    description: 'The directory containing pom.xml or build.gradle.kts'
+    required: false
+    default: '.'
+  java-version:
+    description: 'The Java version used to resolve dependencies'
+    required: false
+    default: '25'
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+      with:
+        distribution: 'temurin'
+        java-version: ${{ inputs.java-version }}
+        cache: ${{ inputs.build-tool }}
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: '22'
+
+    - name: Configure license check
+      shell: bash
+      env:
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
+      run: |
+        bash "$GITHUB_ACTION_PATH/../scripts/merge-config.sh" /tmp/.licensed.yml
+        yq -o=json /tmp/.licensed.yml > /tmp/.licensed.json
+    - name: Check out the branch to commit license records to
+      shell: bash
+      env:
+        BRANCH: ${{ github.head_ref || github.ref_name }}
+      run: bash "$GITHUB_ACTION_PATH/checkout-branch.sh"
+
+    - name: Generate SBOM
+      id: sbom
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        BUILD_TOOL: ${{ inputs.build-tool }}
+      run: echo "bom=$(bash "$GITHUB_ACTION_PATH/generate-sbom.sh")" >> "$GITHUB_OUTPUT"
+    - name: Cache license records
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        BOM: ${{ steps.sbom.outputs.bom }}
+        BUILD_TOOL: ${{ inputs.build-tool }}
+      run: node "$GITHUB_ACTION_PATH/licenses.ts" cache "$BOM" /tmp/.licensed.json "$BUILD_TOOL" .licenses
+    - name: Commit license records
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        BRANCH: ${{ github.head_ref || github.ref_name }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: bash "$GITHUB_ACTION_PATH/commit-records.sh"
+    - name: Check licenses
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        BOM: ${{ steps.sbom.outputs.bom }}
+        BUILD_TOOL: ${{ inputs.build-tool }}
+      run: node "$GITHUB_ACTION_PATH/licenses.ts" status "$BOM" /tmp/.licensed.json "$BUILD_TOOL"

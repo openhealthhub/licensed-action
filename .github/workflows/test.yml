@@ -1,0 +1,69 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Type check
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Shellcheck
+        run: shellcheck jvm/*.sh scripts/*.sh
+
+  # The integration jobs commit license records to the pull request branch, so they run one after another
+  integration-maven:
+    needs: test
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./jvm
+        with:
+          build-tool: 'maven'
+          working-directory: test/maven
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  integration-gradle:
+    needs: [test, integration-maven]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.test.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./jvm
+        with:
+          build-tool: 'gradle'
+          working-directory: test/gradle
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  integration-npm:
+    needs: [test, integration-gradle]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.test.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./npm
+        with:
+          working-directory: test/npm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
