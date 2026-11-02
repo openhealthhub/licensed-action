@@ -26,6 +26,7 @@ allowed:
   - bsd-4-clause
   - python-2.0
   - blueoak-1.0.0
+  - mpl-2.0
 
 reviewed:
   npm:
@@ -49,7 +50,7 @@ reviewed:
   maven:
     # Public Domain, Low in the policy
     - org.json:json
-    # EPL or MPL (as the only or one of the licenses), accepted for the backends by the privacy officer on 2 Nov 2026
+    # EPL or MPL-1.1 (as the only or one of the licenses), accepted for the backends by the privacy officer on 2 Nov 2026
     - ch.qos.logback:logback-classic
     - ch.qos.logback:logback-core
     - com.github.albfernandez:juniversalchardet
@@ -62,7 +63,6 @@ reviewed:
     - jakarta.transaction:jakarta.transaction-api
     - jakarta.ws.rs:jakarta.ws.rs-api
     - junit:junit
-    - net.sf.saxon:Saxon-HE
     - org.aspectj:aspectjweaver
     - org.eclipse.angus:angus-mail
     - org.eclipse.parsson:parsson
@@ -87,7 +87,7 @@ reviewed:
     - org.glassfish.jersey.inject:jersey-hk2
     - org.glassfish.jersey.media:jersey-media-json-jackson
   gradle:
-    # EPL or MPL (as the only or one of the licenses), accepted for the backends by the privacy officer on 2 Nov 2026
+    # EPL or MPL-1.1 (as the only or one of the licenses), accepted for the backends by the privacy officer on 2 Nov 2026
     - ch.qos.logback:logback-classic
     - ch.qos.logback:logback-core
     - com.github.albfernandez:juniversalchardet
@@ -100,7 +100,6 @@ reviewed:
     - jakarta.transaction:jakarta.transaction-api
     - jakarta.ws.rs:jakarta.ws.rs-api
     - junit:junit
-    - net.sf.saxon:Saxon-HE
     - org.aspectj:aspectjweaver
     - org.eclipse.angus:angus-mail
     - org.eclipse.parsson:parsson
