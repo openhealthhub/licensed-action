@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+    # The integration jobs commit these records themselves; such a commit should not start another run
+    paths-ignore:
+      - '**/.licenses/**'
   push:
     branches:
       - main
