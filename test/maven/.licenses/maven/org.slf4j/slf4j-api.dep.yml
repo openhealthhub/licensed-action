@@ -1,0 +1,6 @@
+---
+name: "org.slf4j:slf4j-api"
+version: "2.0.17"
+type: "maven"
+homepage: "http://www.slf4j.org"
+license: "mit"
