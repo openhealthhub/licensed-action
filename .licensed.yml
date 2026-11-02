@@ -9,15 +9,21 @@ allowed:
   - isc
   - 0bsd
   - cpol10
+  - cpol-1.02
   - wtfpl
   - zlib
   - apache-1.0
   - apache-1.1
   - antlr
+  - antlr-pd
   - boost
+  - bsl-1.0
   - icu
   - info-zip
   - jaxen
+  - cc-by-4.0
+  - cc0-1.0
+  - unlicense
 
 ignored:
   npm:
