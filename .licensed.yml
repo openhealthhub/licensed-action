@@ -27,6 +27,7 @@ allowed:
   - python-2.0
   - blueoak-1.0.0
   - mpl-2.0
+  - epl-2.0
 
 reviewed:
   npm:
@@ -50,79 +51,13 @@ reviewed:
   maven:
     # Public Domain, Low in the policy
     - org.json:json
-    # EPL or MPL-1.1 (as the only or one of the licenses), accepted for the backends by the privacy officer on 2 Nov 2026
-    - ch.qos.logback:logback-classic
-    - ch.qos.logback:logback-core
+    # EPL-1.0 or MPL-1.1 (as the only or one of the licenses), accepted per package by the privacy officer on 2 Nov 2026
     - com.github.albfernandez:juniversalchardet
-    - jakarta.annotation:jakarta.annotation-api
-    - jakarta.ejb:jakarta.ejb-api
-    - jakarta.interceptor:jakarta.interceptor-api
-    - jakarta.json:jakarta.json-api
-    - jakarta.mail:jakarta.mail-api
-    - jakarta.servlet:jakarta.servlet-api
-    - jakarta.transaction:jakarta.transaction-api
-    - jakarta.ws.rs:jakarta.ws.rs-api
     - junit:junit
-    - org.aspectj:aspectjweaver
-    - org.eclipse.angus:angus-mail
-    - org.eclipse.parsson:parsson
-    - org.glassfish.expressly:expressly
-    - org.glassfish.hk2.external:aopalliance-repackaged
-    - org.glassfish.hk2:class-model
-    - org.glassfish.hk2:hk2
-    - org.glassfish.hk2:hk2-api
-    - org.glassfish.hk2:hk2-core
-    - org.glassfish.hk2:hk2-locator
-    - org.glassfish.hk2:hk2-runlevel
-    - org.glassfish.hk2:hk2-utils
-    - org.glassfish.hk2:osgi-resource-locator
-    - org.glassfish.hk2:spring-bridge
-    - org.glassfish.jersey.containers:jersey-container-servlet
-    - org.glassfish.jersey.core:jersey-client
-    - org.glassfish.jersey.core:jersey-common
-    - org.glassfish.jersey.core:jersey-server
-    - org.glassfish.jersey.ext:jersey-bean-validation
-    - org.glassfish.jersey.ext:jersey-entity-filtering
-    - org.glassfish.jersey.ext:jersey-spring6
-    - org.glassfish.jersey.inject:jersey-hk2
-    - org.glassfish.jersey.media:jersey-media-json-jackson
   gradle:
-    # EPL or MPL-1.1 (as the only or one of the licenses), accepted for the backends by the privacy officer on 2 Nov 2026
-    - ch.qos.logback:logback-classic
-    - ch.qos.logback:logback-core
+    # EPL-1.0 or MPL-1.1 (as the only or one of the licenses), accepted per package by the privacy officer on 2 Nov 2026
     - com.github.albfernandez:juniversalchardet
-    - jakarta.annotation:jakarta.annotation-api
-    - jakarta.ejb:jakarta.ejb-api
-    - jakarta.interceptor:jakarta.interceptor-api
-    - jakarta.json:jakarta.json-api
-    - jakarta.mail:jakarta.mail-api
-    - jakarta.servlet:jakarta.servlet-api
-    - jakarta.transaction:jakarta.transaction-api
-    - jakarta.ws.rs:jakarta.ws.rs-api
     - junit:junit
-    - org.aspectj:aspectjweaver
-    - org.eclipse.angus:angus-mail
-    - org.eclipse.parsson:parsson
-    - org.glassfish.expressly:expressly
-    - org.glassfish.hk2.external:aopalliance-repackaged
-    - org.glassfish.hk2:class-model
-    - org.glassfish.hk2:hk2
-    - org.glassfish.hk2:hk2-api
-    - org.glassfish.hk2:hk2-core
-    - org.glassfish.hk2:hk2-locator
-    - org.glassfish.hk2:hk2-runlevel
-    - org.glassfish.hk2:hk2-utils
-    - org.glassfish.hk2:osgi-resource-locator
-    - org.glassfish.hk2:spring-bridge
-    - org.glassfish.jersey.containers:jersey-container-servlet
-    - org.glassfish.jersey.core:jersey-client
-    - org.glassfish.jersey.core:jersey-common
-    - org.glassfish.jersey.core:jersey-server
-    - org.glassfish.jersey.ext:jersey-bean-validation
-    - org.glassfish.jersey.ext:jersey-entity-filtering
-    - org.glassfish.jersey.ext:jersey-spring6
-    - org.glassfish.jersey.inject:jersey-hk2
-    - org.glassfish.jersey.media:jersey-media-json-jackson
 
 ignored:
   npm:
