@@ -15,19 +15,33 @@ inputs:
     description: 'The Java version used to resolve dependencies'
     required: false
     default: '25'
+  paths:
+    description: 'Glob patterns, one per line, of the files whose change requires a license check on a pull request; defaults to the build files'
+    required: false
+    default: ''
 runs:
   using: "composite"
   steps:
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: '22'
+    - name: Check for dependency changes
+      id: changes
+      shell: bash
+      env:
+        LICENSE_SOURCE: ${{ inputs.build-tool }}
+        PATHS: ${{ inputs.paths }}
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
+      run: node "$GITHUB_ACTION_PATH/../scripts/changes.ts"
+
     - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+      if: steps.changes.outputs.run == 'true'
       with:
         distribution: 'temurin'
         java-version: ${{ inputs.java-version }}
         cache: ${{ inputs.build-tool }}
-    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-      with:
-        node-version: '22'
-
     - name: Configure license check
+      if: steps.changes.outputs.run == 'true'
       shell: bash
       env:
         WORKING_DIRECTORY: ${{ inputs.working-directory }}
@@ -35,12 +49,14 @@ runs:
         bash "$GITHUB_ACTION_PATH/../scripts/merge-config.sh" /tmp/.licensed.yml
         yq -o=json /tmp/.licensed.yml > /tmp/.licensed.json
     - name: Check out the branch to commit license records to
+      if: steps.changes.outputs.run == 'true'
       shell: bash
       env:
         BRANCH: ${{ github.head_ref || github.ref_name }}
-      run: bash "$GITHUB_ACTION_PATH/checkout-branch.sh"
+      run: bash "$GITHUB_ACTION_PATH/../scripts/checkout-branch.sh"
 
     - name: Generate SBOM
+      if: steps.changes.outputs.run == 'true'
       id: sbom
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -48,23 +64,26 @@ runs:
         BUILD_TOOL: ${{ inputs.build-tool }}
       run: echo "bom=$(bash "$GITHUB_ACTION_PATH/generate-sbom.sh")" >> "$GITHUB_OUTPUT"
     - name: Cache license records
+      if: steps.changes.outputs.run == 'true'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
         BOM: ${{ steps.sbom.outputs.bom }}
         BUILD_TOOL: ${{ inputs.build-tool }}
-      run: node "$GITHUB_ACTION_PATH/licenses.ts" cache "$BOM" /tmp/.licensed.json "$BUILD_TOOL" .licenses
+      run: node "$GITHUB_ACTION_PATH/../scripts/licenses.ts" cache "$BOM" /tmp/.licensed.json "$BUILD_TOOL" .licenses
     - name: Commit license records
+      if: steps.changes.outputs.run == 'true'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
         BRANCH: ${{ github.head_ref || github.ref_name }}
         GITHUB_TOKEN: ${{ inputs.github-token }}
-      run: bash "$GITHUB_ACTION_PATH/commit-records.sh"
+      run: bash "$GITHUB_ACTION_PATH/../scripts/commit-records.sh"
     - name: Check licenses
+      if: steps.changes.outputs.run == 'true'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
         BOM: ${{ steps.sbom.outputs.bom }}
         BUILD_TOOL: ${{ inputs.build-tool }}
-      run: node "$GITHUB_ACTION_PATH/licenses.ts" status "$BOM" /tmp/.licensed.json "$BUILD_TOOL"
+      run: node "$GITHUB_ACTION_PATH/../scripts/licenses.ts" status "$BOM" /tmp/.licensed.json "$BUILD_TOOL"

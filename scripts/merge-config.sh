@@ -6,7 +6,7 @@ shared="$(dirname "$0")/../.licensed.yml"
 repository="$WORKING_DIRECTORY/.licensed.yml"
 
 if [ -f "$repository" ]; then
-  yq eval-all 'select(fileIndex == 0) *d select(fileIndex == 1)' "$shared" "$repository" > "$1"
+  yq eval-all 'select(fileIndex == 0) *+ select(fileIndex == 1)' "$shared" "$repository" > "$1"
 else
   cp "$shared" "$1"
 fi

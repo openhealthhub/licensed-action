@@ -1,6 +1,3 @@
-sources:
-  npm: true
-
 allowed:
   - mit
   - apache-2.0
@@ -24,11 +21,47 @@ allowed:
   - cc-by-4.0
   - cc0-1.0
   - unlicense
+  - mit-0
+  - unicode-3.0
+  - bsd-4-clause
+  - python-2.0
+  - blueoak-1.0.0
+  - mpl-2.0
+  - epl-2.0
+
+reviewed:
+  npm:
+    # Font Awesome Pro, commercial licence paid by Open HealthHub
+    - "@fortawesome/pro-*"
+    - "@fortawesome/sharp-*"
+    - "@fortawesome/duotone-*"
+    # LGPL-3.0, OP-22954 brings its use in line with the LGPL
+    - openpgp
+    # NLM/LHNCBC License, BSD-based, Low in the policy
+    - fhirpath
+    - "@lhncbc/ucum-lhc"
+    # License files show allowed licenses where package.json declares none, only "BSD" or a license file
+    - png-js # MIT
+    - escodegen # BSD-2-Clause
+    - esprima # BSD-2-Clause
+    - estraverse # BSD-2-Clause
+    - esutils # BSD-2-Clause
+    - source-map # BSD-3-Clause
+    - stackframe # Unlicense
+  maven:
+    # Public Domain, Low in the policy
+    - org.json:json
+    # EPL-1.0 or MPL-1.1 (as the only or one of the licenses), accepted per package by the privacy officer on 2 Nov 2026
+    - com.github.albfernandez:juniversalchardet
+    - junit:junit
+  gradle:
+    # EPL-1.0 or MPL-1.1 (as the only or one of the licenses), accepted per package by the privacy officer on 2 Nov 2026
+    - com.github.albfernandez:juniversalchardet
+    - junit:junit
 
 ignored:
   npm:
-    - "@openhealthhub/storybook-components"
-    - "@openhealthhub/common-ng-services"
+    - "@openhealthhub/*"
   maven:
     - "com.openhealthhub:*"
   gradle:

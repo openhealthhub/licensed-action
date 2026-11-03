@@ -1,5 +1,5 @@
 name: 'Check npm licenses'
-description: 'Checks the licenses of npm dependencies with licensed and commits a record per dependency'
+description: 'Checks the licenses of runtime npm dependencies from a CycloneDX SBOM and commits a record per dependency'
 inputs:
   github-token:
     description: 'The github token to commit license records'
@@ -8,6 +8,14 @@ inputs:
     description: 'The directory containing package.json'
     required: false
     default: '.'
+  paths:
+    description: 'Glob patterns, one per line, of the files whose change requires a license check on a pull request; defaults to the lockfiles'
+    required: false
+    default: ''
+  package:
+    description: 'The package.json of the published package, relative to working-directory, when the root package.json is only the development setup, as in a library workspace'
+    required: false
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -16,29 +24,68 @@ runs:
         node-version: '22'
         cache: 'npm'
         cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
-    - name: Install dependencies without running their scripts
+    - name: Check for dependency changes
+      id: changes
       shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        npm config set ignore-scripts true
-        npm ci
+      env:
+        LICENSE_SOURCE: npm
+        PATHS: ${{ inputs.paths }}
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
+      run: node "$GITHUB_ACTION_PATH/../scripts/changes.ts"
 
-    - name: Configure licensed
+    - name: Configure license check
+      if: steps.changes.outputs.run == 'true'
       shell: bash
       env:
         WORKING_DIRECTORY: ${{ inputs.working-directory }}
       run: |
         bash "$GITHUB_ACTION_PATH/../scripts/merge-config.sh" /tmp/.licensed.yml
-        yq -i '.source_path = strenv(WORKING_DIRECTORY) | .cache_path = strenv(WORKING_DIRECTORY) + "/.licenses"' /tmp/.licensed.yml
+        yq -o=json /tmp/.licensed.yml > /tmp/.licensed.json
+    - name: Check out the branch to commit license records to
+      if: steps.changes.outputs.run == 'true'
+      shell: bash
+      env:
+        BRANCH: ${{ github.head_ref || github.ref_name }}
+      run: bash "$GITHUB_ACTION_PATH/../scripts/checkout-branch.sh"
 
-    - uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1.336.0
-      with:
-        ruby-version: ruby
-        working-directory: ${{ inputs.working-directory }}
-    - uses: licensee/setup-licensed@0d52e575b3258417672be0dff2f115d7db8771d8 # v1.3.2
-      with:
-        version: 5.x
-    - uses: github/licensed-ci@6e2e80cc71cd0c4b4bf18a9be203443e7e81273a # v1.11.1
-      with:
-        github_token: ${{ inputs.github-token }}
-        config_file: /tmp/.licensed.yml
+    - name: Install dependencies without running their scripts
+      if: steps.changes.outputs.run == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        npm config set ignore-scripts true
+        npm ci
+    - name: Generate SBOM
+      if: steps.changes.outputs.run == 'true'
+      id: sbom
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        bom="$RUNNER_TEMP/npm-bom.json"
+        npx --yes @cyclonedx/cyclonedx-npm@6.0.1 --omit dev --ignore-npm-errors \
+          --output-format JSON --output-file "$bom" >&2
+        echo "bom=$bom" >> "$GITHUB_OUTPUT"
+    - name: Cache license records
+      if: steps.changes.outputs.run == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        BOM: ${{ steps.sbom.outputs.bom }}
+        LICENSE_PACKAGE: ${{ inputs.package }}
+      run: node "$GITHUB_ACTION_PATH/../scripts/licenses.ts" cache "$BOM" /tmp/.licensed.json npm .licenses
+    - name: Commit license records
+      if: steps.changes.outputs.run == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        BRANCH: ${{ github.head_ref || github.ref_name }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: bash "$GITHUB_ACTION_PATH/../scripts/commit-records.sh"
+    - name: Check licenses
+      if: steps.changes.outputs.run == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        BOM: ${{ steps.sbom.outputs.bom }}
+        LICENSE_PACKAGE: ${{ inputs.package }}
+      run: node "$GITHUB_ACTION_PATH/../scripts/licenses.ts" status "$BOM" /tmp/.licensed.json npm
