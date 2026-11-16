@@ -62,8 +62,8 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: |
         bom="$RUNNER_TEMP/npm-bom.json"
-        npx --yes @cyclonedx/cyclonedx-npm@6.0.1 --omit dev --ignore-npm-errors \
-          --output-format JSON --output-file "$bom" >&2
+        npx --yes @cyclonedx/cyclonedx-npm@7.0.1 --omit dev --ignore-npm-errors \
+          --spec-version 1.6 --no-validate --output-format JSON --output-file "$bom" >&2
         echo "bom=$bom" >> "$GITHUB_OUTPUT"
     - name: Cache license records
       if: steps.changes.outputs.run == 'true'

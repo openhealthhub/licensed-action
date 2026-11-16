@@ -6,7 +6,7 @@ initscript {
         gradlePluginPortal()
     }
     dependencies {
-        classpath("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.5.1")
+        classpath("org.cyclonedx.bom:org.cyclonedx.bom.gradle.plugin:3.6.1")
     }
 }
 
