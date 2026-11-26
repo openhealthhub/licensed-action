@@ -72,6 +72,12 @@ describe('records', () => {
   it('fails on an SBOM without dependencies, as resolving them failed', () => {
     assert.throws(() => toRecords({components: []}, config, 'maven'), /lists no dependencies/);
     assert.throws(() => toRecords({}, config, 'maven'), /lists no dependencies/);
+    assert.throws(() => toRecords({components: []}, config, 'npm'), /lists no dependencies/);
+  });
+
+  it('accepts an empty SBOM of a package without production dependencies', () => {
+    assert.deepEqual(toRecords({components: []}, config, 'npm', undefined, false), []);
+    assert.deepEqual(toRecords({}, config, 'npm', undefined, false), []);
   });
 
   it('reports dependencies that are not allowed or reviewed', () => {

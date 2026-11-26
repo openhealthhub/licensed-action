@@ -119,9 +119,11 @@ const reachableFrom = (bom: Bom, components: Component[], published: string[], t
   return components.filter(component => reached.has(component['bom-ref'] ?? ''));
 };
 
-export const toRecords = (bom: Bom, config: Config, type: string, published?: string[]): DependencyRecord[] => {
+export const toRecords = (
+  bom: Bom, config: Config, type: string, published?: string[], expectsDependencies = true
+): DependencyRecord[] => {
   const all = flatten(bom.components).filter(component => type === 'npm' || component.group);
-  if (all.length === 0) {
+  if (all.length === 0 && expectsDependencies) {
     throw new Error('The SBOM lists no dependencies, so dependency resolution probably failed');
   }
 
@@ -258,26 +260,34 @@ const readBom = (bomPath: string, type: string) => {
   return type === 'npm' ? addLegacyNpmLicenses(bom, process.cwd()) : bom;
 };
 
-// LICENSE_PACKAGE points at the package.json of the published package; npm installs its optional dependencies too
-const publishedDependencies = () => {
-  const path = process.env.LICENSE_PACKAGE;
-  if (!path) {
-    return undefined;
-  }
-
-  const {dependencies, optionalDependencies} = readJson<Record<string, Record<string, string> | undefined>>(path);
+// npm installs optional dependencies too
+const dependenciesOf = (packageJson: string) => {
+  const {dependencies, optionalDependencies} = readJson<Record<string, Record<string, string> | undefined>>(packageJson);
   return Object.keys({...dependencies, ...optionalDependencies});
 };
 
+// LICENSE_PACKAGE points at the package.json of the published package
+const publishedDependencies = () => {
+  const path = process.env.LICENSE_PACKAGE;
+  return path ? dependenciesOf(path) : undefined;
+};
+
+// An npm package with only peer and dev dependencies, such as a library its consumers supply them to, has an empty SBOM
+const expectsDependencies = (type: string) =>
+  type !== 'npm' || dependenciesOf(join(process.cwd(), 'package.json')).length > 0;
+
+const recordsOf = (bomPath: string, config: Config, type: string) =>
+  toRecords(readBom(bomPath, type), config, type, publishedDependencies(), expectsDependencies(type));
+
 const cache = (bomPath: string, configPath: string, type: string, cacheDir: string) => {
-  const records = toRecords(readBom(bomPath, type), readJson(configPath), type, publishedDependencies());
+  const records = recordsOf(bomPath, readJson(configPath), type);
   writeRecords(records, cacheDir, type);
   console.log(`Cached ${records.length} ${type} dependencies in ${join(cacheDir, type)}`);
 };
 
 const status = (bomPath: string, configPath: string, type: string) => {
   const config = readJson<Config>(configPath);
-  const problems = findProblems(toRecords(readBom(bomPath, type), config, type, publishedDependencies()), config, type);
+  const problems = findProblems(recordsOf(bomPath, config, type), config, type);
   if (problems.length === 0) {
     console.log(`All ${type} dependency licenses are allowed`);
     return;
