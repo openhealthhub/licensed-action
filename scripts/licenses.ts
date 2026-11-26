@@ -163,6 +163,7 @@ const toYaml = (record: DependencyRecord) =>
 export const writeRecords = (records: DependencyRecord[], cacheDir: string, type: string) => {
   const typeDir = join(cacheDir, type);
   rmSync(typeDir, {recursive: true, force: true});
+  mkdirSync(typeDir, {recursive: true});
   for (const record of records) {
     const path = join(typeDir, `${record.name.replace(':', '/')}.dep.yml`);
     mkdirSync(dirname(path), {recursive: true});

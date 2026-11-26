@@ -109,6 +109,14 @@ describe('records', () => {
     assert.ok(!existsSync(stale));
   });
 
+  it('creates the cache directory without records, so committing the records finds it', () => {
+    const cacheDir = join(dir, '.licenses');
+
+    writeRecords([], cacheDir, 'npm');
+
+    assert.ok(existsSync(join(cacheDir, 'npm')));
+  });
+
   it('reads licenses that old npm packages declare as an object or array', () => {
     for (const [name, packageJson] of Object.entries({
       object: {license: {type: 'MIT', url: 'https://example.org/LICENSE'}},
